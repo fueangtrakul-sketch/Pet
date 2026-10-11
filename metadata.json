@@ -1,0 +1,6 @@
+{
+  "name": "Pet Translator Mood",
+  "description": "แอปพลิเคชันแปลภาษาและอารมณ์สัตว์เลี้ยง AI พร้อมระบบตรวจจับภาษากาย Visual Cue Reader, วิเคราะห์เสียงร้อง Voice Analysis และ Dashboard สรุปแนวโน้มอารมณ์สัตว์เลี้ยง",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
