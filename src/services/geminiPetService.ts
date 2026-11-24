@@ -4,7 +4,9 @@ import { PRESET_ANALYSIS_MODES } from '../data/petData';
 
 export class GeminiPetService {
   private static getClient(): GoogleGenAI | null {
-    const apiKey = process.env.GEMINI_API_KEY || (window as any).GEMINI_API_KEY;
+    const apiKey =
+      import.meta.env?.VITE_GEMINI_API_KEY ||
+      (typeof globalThis !== 'undefined' ? (globalThis as Record<string, unknown>).GEMINI_API_KEY as string | undefined : undefined);
     if (!apiKey) return null;
     return new GoogleGenAI({ apiKey });
   }
@@ -17,13 +19,12 @@ export class GeminiPetService {
     const ai = this.getClient();
 
     if (!ai) {
-      // Simulate processing delay and return dynamic analysis
-      await new Promise(r => setTimeout(r, 900));
-      return species === 'dog' ? PRESET_ANALYSIS_MODES.happy_dog : PRESET_ANALYSIS_MODES.curious_cat;
+      await new Promise(r => setTimeout(r, 700));
+      return species === 'cat' ? PRESET_ANALYSIS_MODES.curious_cat : PRESET_ANALYSIS_MODES.happy_dog;
     }
 
     try {
-      const prompt = `You are the AI engine of "Pet Translator Mood", an app that translates pet body language and sounds into human thoughts.
+      const prompt = `You are the behavioral analysis engine of "Pet Translator Mood", an app that translates pet body language and sounds into human thoughts.
 Analyze this photo of a ${species} named ${petName}.
 Observe:
 1. Ear orientation (forward, pinned back, relaxed, perked)
@@ -35,9 +36,9 @@ Respond ONLY with valid JSON in this exact structure:
 {
   "moodName": "Happy / Excited",
   "moodScore": 88,
-  "speechBubbleEn": "I want to play outside! Let's chase that yellow ball right now!",
-  "speechBubbleTh": "หนูอยากออกไปวิ่งเล่นข้างนอกแล้วฮะ! ไปโยนลูกบอลกันเถอะ!",
-  "careTipEn": "Ensure access to fresh water. Consider a short walk or game of fetch!",
+  "speechBubbleEn": "I want to play outside! Let's chase that ball right now.",
+  "speechBubbleTh": "หนูอยากออกไปวิ่งเล่นข้างนอกแล้วครับ ไปเล่นโยนบอลกันเถอะ",
+  "careTipEn": "Ensure access to fresh water. Consider a short walk or game of fetch.",
   "careTipTh": "วางน้ำสะอาดไว้ให้ดื่มเสมอ แนะนำให้พาออกไปเดินเล่นหรือเล่นปาบอลสั้นๆ",
   "bodyLanguage": {
     "ears": "Ears forward and attentive",
@@ -47,11 +48,10 @@ Respond ONLY with valid JSON in this exact structure:
   }
 }`;
 
-      // Clean base64 if it has data url header
       const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
       const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-2.5-flash',
         contents: [
           {
             role: 'user',
@@ -81,28 +81,27 @@ Respond ONLY with valid JSON in this exact structure:
       console.warn('Gemini Pet analysis error, falling back to preset:', e);
     }
 
-    return species === 'dog' ? PRESET_ANALYSIS_MODES.happy_dog : PRESET_ANALYSIS_MODES.curious_cat;
+    return species === 'cat' ? PRESET_ANALYSIS_MODES.curious_cat : PRESET_ANALYSIS_MODES.happy_dog;
   }
 
   public static async analyzePetSound(
     species: 'dog' | 'cat' | 'other' = 'dog',
-    petName: string = 'Pet'
+    _petName: string = 'Pet'
   ): Promise<VisualAnalysisResult> {
-    // Acoustic sound frequency analysis
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 700));
 
     if (species === 'cat') {
       return {
         moodName: 'Content / Purring',
         moodScore: 94,
-        speechBubbleEn: 'Purrr... I love you so much, keep scratching my chin right there!',
-        speechBubbleTh: 'เพอร์ร... หนูชอบมากเลย เกาคางตรงนั้นให้หนูต่ออีกนิดนะทาส!',
+        speechBubbleEn: 'I feel safe and comfortable here. Please keep petting gently.',
+        speechBubbleTh: 'รู้สึกปลอดภัยและสบายใจมาก ช่วยลูบคางเบาๆ ต่ออีกนิดนะ',
         careTipEn: 'Purring releases endorphins. Your cat feels exceptionally safe and comfortable.',
-        careTipTh: 'เสียงเพอร์ช่วยหลั่งสารความสุข แมวของคุณรู้สึกปลอดภัยและผ่อนคลายเต็มที่',
+        careTipTh: 'เสียงเพอร์บ่งบอกถึงความผ่อนคลายและปลอดภัยอย่างเต็มที่',
         bodyLanguage: {
           ears: 'Neutral slightly tilted (Blissful calm)',
           tail: 'Slow gentle swaying at low frequency',
-          posture: 'Curled in bread loaf position',
+          posture: 'Curled in resting position',
           eyes: 'Half-closed sleepy contentment',
         },
         audioWaveform: [25, 45, 65, 80, 90, 75, 60, 85, 70, 50, 40, 30],
@@ -112,15 +111,15 @@ Respond ONLY with valid JSON in this exact structure:
     return {
       moodName: 'Excited / Play Bark',
       moodScore: 89,
-      speechBubbleEn: 'Woof woof! I have so much energy, let us play and run around!',
-      speechBubbleTh: 'โฮ่งๆ! หนูมีพลังล้นเหลือมากเลย ออกไปวิ่งเล่นกันเถอะฮะ!',
-      careTipEn: 'A high-pitch staccato bark signals joyful excitement. Great time for outdoor agility.',
-      careTipTh: 'เสียงเห่าแหลมสั้นเป็นจังหวะบ่งบอกถึงความร่าเริง เหมาะแก่การพาออกไปปลดปล่อยพลังงาน',
+      speechBubbleEn: 'I have plenty of energy right now. Let us go play outside!',
+      speechBubbleTh: 'ตอนนี้มีพลังเหลือเฟือเลย ออกไปวิ่งเล่นหรือเดินเล่นกันเถอะ',
+      careTipEn: 'A high-pitch staccato bark signals joyful excitement. Great time for outdoor activity.',
+      careTipTh: 'เสียงเห่าสั้นเป็นจังหวะบ่งบอกถึงความกระตือรือร้น เหมาะแก่การพาออกไปทำกิจกรรมกลางแจ้ง',
       bodyLanguage: {
         ears: 'Ears pricked upwards in high alertness',
         tail: 'High vigorous tail wagging',
-        posture: 'Front paws bouncing in play stance',
-        eyes: 'Wide gleaming eyes full of excitement',
+        posture: 'Front paws poised in play stance',
+        eyes: 'Wide clear eyes full of excitement',
       },
       audioWaveform: [45, 75, 95, 60, 100, 85, 55, 90, 75, 45, 80, 60],
     };
