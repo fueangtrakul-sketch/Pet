@@ -1,26 +1,9 @@
 import React, { useState } from 'react';
-import {
-  BarChart3,
-  Calendar,
-  CheckCircle2,
-  TrendingUp,
-  Heart,
-  Droplets,
-  Clock,
-  Sparkles,
-  Download,
-  Filter,
-  Check,
-  Activity,
-  Layers,
-  Plus,
-  PawPrint,
-  FileText,
-} from 'lucide-react';
+import { Download, Check, Filter, Plus, FileText } from 'lucide-react';
 import { PetProfile, TranslationLog, WeeklyMoodData } from '../types/pet';
 import { EMPTY_WEEKLY_MOOD_STATS } from '../data/petData';
 import { SoundEffects } from '../services/soundEffects';
-import { Card3D } from './Card3D';
+import { FlowNavigation, ScreenId } from './FlowNavigation';
 
 interface DashboardScreenProps {
   activePet: PetProfile | null;
@@ -28,7 +11,7 @@ interface DashboardScreenProps {
   onSelectPet: (pet: PetProfile) => void;
   logs: TranslationLog[];
   lang: 'en' | 'th';
-  onNavigate?: (screen: 'home' | 'choose' | 'analysis' | 'dashboard' | 'review') => void;
+  onNavigate?: (screen: ScreenId) => void;
 }
 
 export const DashboardScreen: React.FC<DashboardScreenProps> = ({
@@ -49,18 +32,18 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
 
   const handleExportCsv = () => {
     if (logs.length === 0) return;
-    const header = 'Timestamp,Pet Name,Sound Trigger,Translation,Mood\n';
+    const header = 'Timestamp,Pet Name,Sound Trigger,Translation,Mood,Confidence\n';
     const rows = logs
       .map(
         l =>
-          `"${l.timestamp}","${l.petName}","${l.soundType}","${l.translatedText}","${l.mood}"`
+          `"${l.timestamp}","${l.petName}","${l.soundType}","${lang === 'th' ? l.translatedTextTh : l.translatedText}","${l.mood}","${l.confidence}%"`
       )
       .join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `pet_translation_logs_${activePet?.name.toLowerCase() || 'pet'}.csv`;
+    a.download = `pet_mood_logs_${activePet?.name.toLowerCase() || 'all'}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     setDownloaded(true);
@@ -68,438 +51,331 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({
     setTimeout(() => setDownloaded(false), 2000);
   };
 
-  // Calculate real average score from logs or 0 if empty
-  const avgMoodScore = logs.length > 0
-    ? Math.round(logs.reduce((acc, l) => acc + (l.confidence || 85), 0) / logs.length)
-    : activePet?.moodScore || 0;
+  const avgMoodScore =
+    logs.length > 0
+      ? Math.round(logs.reduce((acc, l) => acc + (l.confidence || 85), 0) / logs.length)
+      : activePet?.moodScore || 0;
 
-  // Weekly mood stats: Empty (0) if logs is empty, or computed if logs exist
-  const weeklyData: WeeklyMoodData[] = logs.length > 0
-    ? EMPTY_WEEKLY_MOOD_STATS.map((d, i) => {
-        // distribute logs lightly for visual representation
-        const count = logs.filter((_, idx) => idx % 7 === i).length;
-        return {
-          day: d.day,
-          happy: count > 0 ? 60 + (i * 5) % 25 : 0,
-          excited: count > 0 ? 20 : 0,
-          relaxed: count > 0 ? 15 : 0,
-          anxious: count > 0 ? 5 : 0,
-        };
-      })
-    : EMPTY_WEEKLY_MOOD_STATS;
+  const weeklyData: WeeklyMoodData[] =
+    logs.length > 0
+      ? EMPTY_WEEKLY_MOOD_STATS.map((d, i) => {
+          const count = logs.filter((_, idx) => idx % 7 === i).length;
+          return {
+            day: d.day,
+            happy: count > 0 ? 58 + ((i * 5) % 24) : 0,
+            excited: count > 0 ? 22 : 0,
+            relaxed: count > 0 ? 15 : 0,
+            anxious: count > 0 ? 5 : 0,
+          };
+        })
+      : EMPTY_WEEKLY_MOOD_STATS;
 
   return (
-    <div className="relative max-w-6xl mx-auto px-4 py-6 space-y-6 select-none">
-      {/* 3D Floating Props */}
-      <div className="absolute top-8 left-4 text-2xl animate-float-3d opacity-45 pointer-events-none drop-shadow-md hidden md:block">
-        📊
-      </div>
-      <div className="absolute bottom-16 right-4 text-2xl animate-float-3d opacity-45 pointer-events-none drop-shadow-md hidden md:block" style={{ animationDelay: '1.2s' }}>
-        ✨
-      </div>
-
-      {/* Box 1: Title with Staggered Spring-Bounce Entrance */}
-      <div className="animate-spring-up stagger-1 text-center space-y-1">
-        <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-400/40 text-xs text-emerald-300 font-semibold mb-1 shadow-lg">
-          <BarChart3 className="w-3.5 h-3.5 text-yellow-300" />
-          <span>{lang === 'th' ? 'ขั้นตอนที่ 4: แดชบอร์ดสรุปสถิติ & ประวัติ' : 'Step 4: Mood Analytics & History'}</span>
-        </div>
-        <h1 className="font-game text-3xl sm:text-5xl font-black text-white uppercase tracking-wider drop-shadow-lg text-hero-3d">
-          PET DASHBOARD
-        </h1>
-        <p className="text-xs sm:text-sm text-emerald-200/90 font-medium drop-shadow">
-          {lang === 'th'
-            ? 'สรุปสถิติและประวัติการแปลภาษา ข้อมูลจะแสดงเมื่อคุณเพิ่มสัตว์เลี้ยงและทำการตรวจจับ'
-            : 'Track emotional trends and historical communication logs in 3D'}
-        </p>
-      </div>
-
-      {/* Main Glassmorphic Container */}
-      <div className="glass-panel p-5 sm:p-7 rounded-3xl border-emerald-400/30 shadow-2xl space-y-6 preserve-3d">
-        {/* Top Row: Pet Profile Card + Weekly Mood Balance Stacked Chart */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Box 2: Pet Switcher & Profile Card (4 cols) */}
-          <Card3D depth={7} className="lg:col-span-4 animate-spring-up stagger-2">
-            <div className="bg-emerald-950/70 border border-emerald-500/30 rounded-2xl p-4.5 flex flex-col justify-between space-y-4 h-full shadow-xl preserve-3d">
-              {activePet ? (
-                // Active Pet Profile Card
-                <div className="flex items-center space-x-3.5 translate-z-20">
-                  <div className="relative">
-                    <img
-                      src={activePet.avatar}
-                      alt={activePet.name}
-                      className="w-16 h-16 rounded-2xl object-cover ring-2 ring-emerald-400 shadow-xl bg-black"
-                    />
-                    <span className="absolute -bottom-1 -right-1 text-sm">
-                      {activePet.species === 'dog' ? '🐶' : '🐱'}
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="font-game text-xl font-bold text-white tracking-wide">
-                      {activePet.name}
-                    </h3>
-                    <p className="text-xs text-emerald-200 font-mono">
-                      Age: 0{activePet.age} · {activePet.breed}
-                    </p>
-                    <div className="mt-1 flex items-center space-x-1 text-xs text-yellow-300 font-bold">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>
-                        {lang === 'th' ? 'สถานะ: ' : 'Status: '}{activePet.currentMood} ({avgMoodScore}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                // Empty Pet Card (0 Data)
-                <div className="p-4 rounded-xl border border-dashed border-emerald-500/40 bg-emerald-950/40 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-900/60 mx-auto flex items-center justify-center text-emerald-300">
-                    <PawPrint className="w-6 h-6 text-yellow-300" />
-                  </div>
-                  <h4 className="font-game text-base font-bold text-white">
-                    {lang === 'th' ? 'ยังไม่มีสัตว์เลี้ยง (0)' : 'No Pet Profiles (0)'}
-                  </h4>
-                  <p className="text-xs text-emerald-300/80">
-                    {lang === 'th' ? 'เพิ่มสัตว์เลี้ยงของคุณเพื่อเริ่มบันทึกสถิติ' : 'Add your pet to start tracking analytics'}
-                  </p>
-                  {onNavigate && (
-                    <button
-                      onClick={() => onNavigate('choose')}
-                      className="mt-2 inline-flex items-center space-x-1 px-3 py-1.5 rounded-xl bg-yellow-400 text-emerald-950 text-xs font-bold font-game cursor-pointer shadow-md"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>{lang === 'th' ? 'ไปเพิ่มสัตว์เลี้ยง' : 'Add Pet'}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Switch Pet Selector */}
-              {pets.length > 0 ? (
-                <div className="space-y-1.5 pt-3 border-t border-emerald-500/20 translate-z-10">
-                  <span className="text-[11px] font-bold text-emerald-300 uppercase tracking-wider block">
-                    {lang === 'th' ? 'สลับสัตว์เลี้ยง:' : 'Switch Active Pet:'}
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {pets.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          onSelectPet(p);
-                          if (p.species === 'dog') SoundEffects.playBark();
-                          else SoundEffects.playMeow();
-                        }}
-                        className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-game font-bold transition-all cursor-pointer ${
-                          activePet?.id === p.id
-                            ? 'bg-emerald-400 text-emerald-950 shadow-md font-black scale-105'
-                            : 'bg-emerald-900/40 text-emerald-300 border border-emerald-500/20 hover:bg-emerald-800/40'
-                        }`}
-                      >
-                        {p.species === 'dog' ? '🐶 ' : '🐱 '}
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-[11px] text-emerald-400/60 font-mono text-center pt-2 border-t border-emerald-500/20">
-                  {lang === 'th' ? 'จำนวนสัตว์เลี้ยงทั้งหมด: 0 ตัว' : 'Total Registered Pets: 0'}
-                </div>
-              )}
-            </div>
-          </Card3D>
-
-          {/* Box 3: Weekly Mood Balance Stacked Chart (8 cols) */}
-          <Card3D depth={6} className="lg:col-span-8 animate-spring-up stagger-3">
-            <div className="bg-emerald-950/70 border border-emerald-500/30 rounded-2xl p-4.5 sm:p-5 flex flex-col justify-between space-y-3 h-full shadow-xl preserve-3d">
-              <div className="flex items-center justify-between translate-z-20">
-                <div>
-                  <h3 className="font-game text-sm sm:text-base font-bold text-white tracking-wide">
-                    Weekly Mood Balance
-                  </h3>
-                  <span className="text-[10px] text-emerald-300 font-mono">
-                    {logs.length > 0
-                      ? 'Mon - Sun Emotional Proportions (3D Isometric Stack)'
-                      : lang === 'th'
-                      ? 'ข้อมูลเป็น 0 (จะเริ่มบันทึกเมื่อตรวจจับในหน้า Live Analysis)'
-                      : '0 Data points (Will populate upon live detection)'}
-                  </span>
-                </div>
-
-                {/* Legend matching stacked colors */}
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-white">
-                  <span className="flex items-center space-x-1">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400" />
-                    <span>Happy</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-amber-400" />
-                    <span>Excited</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-sky-400" />
-                    <span>Relaxed</span>
-                  </span>
-                  <span className="flex items-center space-x-1">
-                    <span className="w-2.5 h-2.5 rounded-sm bg-rose-400" />
-                    <span>Anxious</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Stacked Bar Chart */}
-              <div className="h-36 pt-4 flex items-end justify-between gap-2 sm:gap-4 px-2 translate-z-10">
-                {weeklyData.map(stat => (
-                  <div key={stat.day} className="flex-1 flex flex-col items-center h-full justify-end group">
-                    <div className="w-full max-w-[28px] h-full flex flex-col justify-end rounded-t-lg overflow-hidden bg-emerald-950/50 border border-emerald-500/30 group-hover:scale-105 transition-transform shadow-md">
-                      {stat.anxious > 0 && (
-                        <div
-                          style={{ height: `${stat.anxious}%` }}
-                          className="w-full bg-rose-400 transition-all"
-                          title={`Anxious: ${stat.anxious}%`}
-                        />
-                      )}
-                      {stat.relaxed > 0 && (
-                        <div
-                          style={{ height: `${stat.relaxed}%` }}
-                          className="w-full bg-sky-400 transition-all"
-                          title={`Relaxed: ${stat.relaxed}%`}
-                        />
-                      )}
-                      {stat.excited > 0 && (
-                        <div
-                          style={{ height: `${stat.excited}%` }}
-                          className="w-full bg-amber-400 transition-all"
-                          title={`Excited: ${stat.excited}%`}
-                        />
-                      )}
-                      {stat.happy > 0 && (
-                        <div
-                          style={{ height: `${stat.happy}%` }}
-                          className="w-full bg-emerald-400 transition-all shadow-[0_0_8px_rgba(74,222,128,0.5)]"
-                          title={`Happy: ${stat.happy}%`}
-                        />
-                      )}
-                      {stat.happy === 0 && stat.excited === 0 && (
-                        <div className="w-full h-1 bg-emerald-800/40" />
-                      )}
-                    </div>
-                    <span className="text-[11px] font-mono text-emerald-200 mt-2 font-bold group-hover:text-yellow-300 transition-colors">
-                      {stat.day}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card3D>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 space-y-8 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/[0.08] pb-6">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-[#4BA393]">
+            {lang === 'th' ? 'ขั้นตอนที่ 4 · แดชบอร์ดสถิติ' : 'Step 4 · Analytics & Logs'}
+          </p>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-slate-100 tracking-tight">
+            {lang === 'th' ? 'สรุปแนวโน้มอารมณ์และประวัติการแปล' : 'Mood Analytics & History'}
+          </h1>
+          <p className="text-sm text-slate-400">
+            {lang === 'th'
+              ? 'ติดตามคะแนนความสบายใจรายสัปดาห์และตรวจสอบบันทึกการวิเคราะห์ย้อนหลัง'
+              : 'Review weekly mood distribution and inspect stored behavioral translations.'}
+          </p>
         </div>
 
-        {/* Middle Row: Daily Mood Distribution + Recent Mood Score + Pet Health Recommendations */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-          {/* Box 4: Daily Mood Analytics & Donut (6 cols) */}
-          <Card3D depth={6} className="md:col-span-6 animate-spring-up stagger-4">
-            <div className="bg-emerald-950/70 border border-emerald-500/30 rounded-2xl p-4.5 sm:p-5 space-y-4 h-full shadow-xl preserve-3d">
-              <h3 className="font-game text-sm font-bold text-white tracking-wide translate-z-20">
-                Daily Mood Analytics
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4 items-center translate-z-10">
-                {/* Custom SVG Pie / Donut Chart */}
-                <div className="flex flex-col items-center justify-center">
-                  <svg width="120" height="120" viewBox="0 0 42 42" className="transform -rotate-90 drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
-                    {logs.length > 0 ? (
-                      <>
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#4ade80"
-                          strokeWidth="7"
-                          strokeDasharray="60 40"
-                          strokeDashoffset="0"
-                        />
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#facc15"
-                          strokeWidth="7"
-                          strokeDasharray="25 75"
-                          strokeDashoffset="-60"
-                        />
-                        <circle
-                          cx="21"
-                          cy="21"
-                          r="15.91549430918954"
-                          fill="transparent"
-                          stroke="#38bdf8"
-                          strokeWidth="7"
-                          strokeDasharray="15 85"
-                          strokeDashoffset="-85"
-                        />
-                      </>
-                    ) : (
-                      <circle
-                        cx="21"
-                        cy="21"
-                        r="15.91549430918954"
-                        fill="transparent"
-                        stroke="rgba(74, 222, 128, 0.2)"
-                        strokeWidth="7"
-                      />
-                    )}
-                  </svg>
-                  <span className="text-[10px] font-mono text-emerald-300 mt-2">
-                    {logs.length > 0 ? 'Daily Emotional Share' : lang === 'th' ? 'ไม่มีข้อมูล (0%)' : 'No Data (0%)'}
-                  </span>
-                </div>
-
-                {/* Recent Mood Score Box */}
-                <div className="bg-emerald-900/60 border border-emerald-500/30 p-3.5 rounded-2xl text-center space-y-1 shadow-lg">
-                  <span className="text-[10px] font-mono text-emerald-300 uppercase tracking-wider block">
-                    Recent Mood Score
-                  </span>
-                  <div className="text-3xl font-black font-game text-yellow-300 drop-shadow">
-                    {avgMoodScore}%
-                  </div>
-                  <div className="text-xs font-bold text-white flex items-center justify-center space-x-1">
-                    <span>{logs.length > 0 ? 'Analyzed' : lang === 'th' ? 'รอการวิเคราะห์' : 'Pending Scan'}</span>
-                    <span>{logs.length > 0 ? '✨' : '⏳'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Card3D>
-
-          {/* Box 5: Pet Health Recommendations (6 cols) */}
-          <Card3D depth={6} className="md:col-span-6 animate-spring-up stagger-5">
-            <div className="bg-emerald-950/70 border border-emerald-500/30 rounded-2xl p-4.5 sm:p-5 space-y-3 h-full shadow-xl preserve-3d">
-              <h3 className="font-game text-sm font-bold text-yellow-300 tracking-wide flex items-center space-x-1.5 translate-z-20">
-                <span>Pet Health Recommendations</span>
-                <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
-              </h3>
-
-              <div className="space-y-2 text-xs text-white translate-z-10">
-                {logs.length > 0 ? (
-                  <>
-                    <div className="flex items-start space-x-2.5 bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-500/20">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{lang === 'th' ? 'เตรียมน้ำสะอาดวางไว้ตลอดทั้งวันเพื่อสุขภาพไต' : 'Ensure fresh water is always available.'}</span>
-                    </div>
-                    <div className="flex items-start space-x-2.5 bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-500/20">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{lang === 'th' ? 'จัดเวลาเล่นสั้นๆ 15-20 นาที เพื่อคลายเครียด' : 'Schedule a short play session (fetch/feather wand).'}</span>
-                    </div>
-                    <div className="flex items-start space-x-2.5 bg-emerald-900/40 p-2.5 rounded-xl border border-emerald-500/20">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                      <span>{lang === 'th' ? 'พิจารณาพาเดินเล่นระยะไกลในช่วงเย็นเพื่อออกกำลังกาย' : 'Consider a longer walk in the park this evening.'}</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-4 rounded-xl border border-dashed border-emerald-500/30 text-center space-y-1 text-emerald-300">
-                    <p className="font-game text-xs font-bold text-white">
-                      {lang === 'th' ? 'ยังไม่มีคำแนะนำเฉพาะตัว (0)' : 'No personalized tips yet (0)'}
-                    </p>
-                    <p className="text-[11px] text-emerald-300/80">
-                      {lang === 'th'
-                        ? 'คำแนะนำในการดูแลจะวิเคราะห์จากประวัติการแปลและภาษากายของสัตว์เลี้ยง'
-                        : 'Care tips will be generated when you analyze pet postures or sounds.'}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Card3D>
+        <div className="flex items-center gap-2 shrink-0">
+          {logs.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              className="inline-flex items-center gap-2 px-3.5 py-2 min-h-[38px] rounded-lg border border-white/[0.1] bg-[#12161B] hover:bg-[#171C23] text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              {downloaded ? <Check className="w-3.5 h-3.5 text-[#4BA393]" /> : <Download className="w-3.5 h-3.5 text-slate-400" />}
+              <span>{downloaded ? (lang === 'th' ? 'ส่งออกแล้ว' : 'Exported') : (lang === 'th' ? 'ส่งออก CSV' : 'Export CSV')}</span>
+            </button>
+          )}
         </div>
+      </div>
 
-        {/* Box 6: Recent Translation Log Table */}
-        <div className="animate-spring-up stagger-6 space-y-3 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <h3 className="font-game text-sm sm:text-base font-bold text-white tracking-wide flex items-center space-x-2">
-              <span>Recent Translation Log</span>
-              <span className="text-xs text-emerald-400 font-mono">({filteredLogs.length} events)</span>
-            </h3>
-
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center space-x-1 bg-emerald-950/80 border border-emerald-500/30 rounded-xl px-2 py-1 text-xs">
-                <Filter className="w-3 h-3 text-emerald-400" />
-                <select
-                  value={filterSound}
-                  onChange={e => setFilterSound(e.target.value)}
-                  className="bg-transparent text-emerald-200 text-xs focus:outline-none cursor-pointer"
-                >
-                  <option value="all" className="bg-emerald-950 text-white">All Sounds</option>
-                  <option value="barking" className="bg-emerald-950 text-white">Barking</option>
-                  <option value="meowing" className="bg-emerald-950 text-white">Meowing</option>
-                  <option value="body cue" className="bg-emerald-950 text-white">Body Cue</option>
-                </select>
-              </div>
-
-              {logs.length > 0 && (
-                <button
-                  onClick={handleExportCsv}
-                  className="flex items-center space-x-1 bg-emerald-900/60 hover:bg-emerald-800 text-yellow-300 text-xs px-2.5 py-1 rounded-xl border border-emerald-500/40 transition-colors cursor-pointer"
-                >
-                  {downloaded ? <Check className="w-3.5 h-3.5" /> : <Download className="w-3.5 h-3.5" />}
-                  <span>{downloaded ? 'Downloaded!' : 'Export CSV'}</span>
-                </button>
-              )}
-            </div>
+      {/* Pet Switcher Strip (Only if pets exist) */}
+      {pets.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-[#12161B] border border-white/[0.08] overflow-x-auto">
+            {pets.map(p => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  SoundEffects.playPop();
+                  onSelectPet(p);
+                }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  activePet?.id === p.id
+                    ? 'bg-[#1F2730] text-slate-100'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
           </div>
+          {activePet && (
+            <span className="text-xs text-slate-400">
+              {activePet.breed} · <span className="font-mono tabular-nums">{activePet.age} {lang === 'th' ? 'ปี' : 'yrs'}</span>
+            </span>
+          )}
+        </div>
+      )}
 
-          {/* Table Container */}
-          <div className="overflow-x-auto rounded-2xl border border-emerald-500/30 bg-emerald-950/60 shadow-xl">
-            {filteredLogs.length > 0 ? (
-              <table className="w-full text-left text-xs">
-                <thead className="bg-emerald-900/80 text-emerald-300 uppercase font-mono text-[10px] tracking-wider border-b border-emerald-500/30">
-                  <tr>
-                    <th className="py-3 px-4">Time</th>
-                    <th className="py-3 px-4">Pet</th>
-                    <th className="py-3 px-4">Trigger</th>
-                    <th className="py-3 px-4">Translation</th>
-                    <th className="py-3 px-4">Mood</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-emerald-500/20 text-emerald-100">
-                  {filteredLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-emerald-900/40 transition-colors">
-                      <td className="py-3 px-4 font-mono text-emerald-400">{log.timestamp}</td>
-                      <td className="py-3 px-4 font-bold text-white">{log.petName}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-900/80 border border-emerald-500/30 text-[10px] font-mono text-yellow-300">
-                          {log.soundType}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 max-w-xs sm:max-w-md font-medium">
-                        <div>"{lang === 'th' ? log.translatedTextTh : log.translatedText}"</div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-800/80 text-white font-bold text-[10px]">
-                          {log.mood}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              // Empty logs table state
-              <div className="p-8 text-center space-y-2">
-                <FileText className="w-10 h-10 text-emerald-400/60 mx-auto" />
-                <h4 className="font-game text-sm font-bold text-white">
-                  {lang === 'th' ? 'ยังไม่มีประวัติการแปลภาษา (0 รายการ)' : 'No Translation History Yet (0 Events)'}
-                </h4>
-                <p className="text-xs text-emerald-300/80 max-w-sm mx-auto">
-                  {lang === 'th'
-                    ? 'เมื่อคุณทำการแนบรูปภาพหรือบันทึกเสียงในหน้า Live Analysis ข้อมูลการถอดรหัสจะถูกบันทึกและแสดงที่นี่อัตโนมัติ'
-                    : 'When you attach photos or record audio in Live Analysis, translations will appear here in real-time.'}
-                </p>
-              </div>
+      {/* 3 Quiet KPI Summary Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-white/[0.08] bg-[#12161B] p-5 space-y-1">
+          <span className="text-xs text-slate-400 block">
+            {lang === 'th' ? 'ดัชนีอารมณ์เฉลี่ย' : 'Average Mood Index'}
+          </span>
+          <div className="font-mono text-2xl font-semibold text-slate-100 tabular-nums">
+            {avgMoodScore}%
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.08] bg-[#12161B] p-5 space-y-1">
+          <span className="text-xs text-slate-400 block">
+            {lang === 'th' ? 'จำนวนการวิเคราะห์ทั้งหมด' : 'Total Logged Scans'}
+          </span>
+          <div className="font-mono text-2xl font-semibold text-slate-100 tabular-nums">
+            {logs.length}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.08] bg-[#12161B] p-5 space-y-1">
+          <span className="text-xs text-slate-400 block">
+            {lang === 'th' ? 'โปรไฟล์สัตว์เลี้ยงที่บันทึก' : 'Registered Profiles'}
+          </span>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-2xl font-semibold text-slate-100 tabular-nums">
+              {pets.length}
+            </span>
+            {pets.length === 0 && onNavigate && (
+              <button
+                type="button"
+                onClick={() => onNavigate('choose')}
+                className="inline-flex items-center gap-1 text-xs font-medium text-[#4BA393] hover:text-[#6AC2B2] cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{lang === 'th' ? 'เพิ่มสัตว์เลี้ยง' : 'Add Pet'}</span>
+              </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Middle Section: Weekly Chart + Care Notes */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Weekly Mood Balance (8 cols) */}
+        <div className="lg:col-span-8 rounded-xl border border-white/[0.08] bg-[#12161B] p-5 sm:p-6 flex flex-col justify-between space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-sm font-semibold text-slate-100">
+                {lang === 'th' ? 'สัดส่วนอารมณ์รายสัปดาห์' : 'Weekly Mood Balance'}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {logs.length > 0
+                  ? lang === 'th' ? 'วันจันทร์ – อาทิตย์ (%)' : 'Monday – Sunday distribution'
+                  : lang === 'th' ? 'ยังไม่มีข้อมูล (0 รายการ)' : 'No logged sessions yet (0)'}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-xs bg-[#4BA393]" />
+                <span>{lang === 'th' ? 'ร่าเริง' : 'Happy'}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-xs bg-[#C89B54]" />
+                <span>{lang === 'th' ? 'ตื่นตัว' : 'Excited'}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-xs bg-[#5E81AC]" />
+                <span>{lang === 'th' ? 'ผ่อนคลาย' : 'Relaxed'}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-xs bg-[#B46970]" />
+                <span>{lang === 'th' ? 'กังวล' : 'Anxious'}</span>
+              </span>
+            </div>
+          </div>
+
+          <div className="h-44 pt-2 flex items-end justify-between gap-3 sm:gap-5">
+            {weeklyData.map(stat => (
+              <div key={stat.day} className="flex-1 flex flex-col items-center h-full justify-end">
+                <div className="w-full max-w-[32px] h-full flex flex-col justify-end rounded-t-sm overflow-hidden bg-[#0B0D10] border border-white/[0.06]">
+                  {stat.anxious > 0 && (
+                    <div style={{ height: `${stat.anxious}%` }} className="w-full bg-[#B46970]" />
+                  )}
+                  {stat.relaxed > 0 && (
+                    <div style={{ height: `${stat.relaxed}%` }} className="w-full bg-[#5E81AC]" />
+                  )}
+                  {stat.excited > 0 && (
+                    <div style={{ height: `${stat.excited}%` }} className="w-full bg-[#C89B54]" />
+                  )}
+                  {stat.happy > 0 && (
+                    <div style={{ height: `${stat.happy}%` }} className="w-full bg-[#4BA393]" />
+                  )}
+                </div>
+                <span className="text-[11px] font-mono text-slate-400 mt-2">{stat.day}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Behavioral Care Summary (4 cols) */}
+        <div className="lg:col-span-4 rounded-xl border border-white/[0.08] bg-[#12161B] p-5 sm:p-6 flex flex-col justify-between space-y-4">
+          <div className="space-y-1">
+            <h2 className="font-display text-sm font-semibold text-slate-100">
+              {lang === 'th' ? 'ข้อสังเกตและการดูแล' : 'Care Notes'}
+            </h2>
+            <p className="text-xs text-slate-400">
+              {lang === 'th' ? 'สรุปจากประวัติการวิเคราะห์' : 'Derived from activity logs'}
+            </p>
+          </div>
+
+          {logs.length > 0 ? (
+            <ul className="divide-y divide-white/[0.06] text-xs text-slate-300 flex-1">
+              <li className="py-3 leading-relaxed">
+                {lang === 'th'
+                  ? 'เตรียมน้ำสะอาดในจุดที่เข้าถึงง่ายตลอดวัน'
+                  : 'Maintain accessible fresh hydration throughout the day.'}
+              </li>
+              <li className="py-3 leading-relaxed">
+                {lang === 'th'
+                  ? 'จัดกิจกรรมกระตุ้นความสนใจสั้นๆ 15–20 นาที'
+                  : 'Schedule 15–20 minute structured play sessions.'}
+              </li>
+              <li className="py-3 leading-relaxed">
+                {lang === 'th'
+                  ? 'สังเกตความสม่ำเสมอของเวลานอนและการตอบสนองต่อเสียง'
+                  : 'Monitor resting posture and vocal responsiveness.'}
+              </li>
+            </ul>
+          ) : (
+            <div className="flex-1 flex flex-col justify-center py-6 text-center space-y-2 border border-dashed border-white/[0.08] rounded-lg px-4">
+              <p className="text-xs font-medium text-slate-300">
+                {lang === 'th' ? 'ยังไม่มีคำแนะนำ (0)' : 'No Insights Yet (0)'}
+              </p>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {lang === 'th'
+                  ? 'ข้อมูลคำแนะนำจะแสดงหลังการวิเคราะห์ภาพหรือเสียงในหน้าตรวจจับสด'
+                  : 'Guidance populates after completing a visual or audio scan.'}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Translation History Table */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h2 className="font-display text-base font-semibold text-slate-100">
+              {lang === 'th' ? 'ประวัติการแปลภาษา' : 'Translation Log'}
+            </h2>
+            <span className="text-xs font-mono text-slate-500 tabular-nums">
+              ({filteredLogs.length})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-[#12161B] text-xs w-fit">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={filterSound}
+              onChange={e => setFilterSound(e.target.value)}
+              aria-label="Filter trigger type"
+              className="bg-transparent text-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="all" className="bg-[#12161B]">{lang === 'th' ? 'ทุกประเภท' : 'All Triggers'}</option>
+              <option value="barking" className="bg-[#12161B]">Barking</option>
+              <option value="meowing" className="bg-[#12161B]">Meowing</option>
+              <option value="body cue" className="bg-[#12161B]">Body Cue</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-white/[0.08] bg-[#12161B] overflow-x-auto">
+          {filteredLogs.length > 0 ? (
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-white/[0.08] text-slate-400 font-medium">
+                <tr className="h-10">
+                  <th className="px-4 font-medium">{lang === 'th' ? 'เวลา' : 'Time'}</th>
+                  <th className="px-4 font-medium">{lang === 'th' ? 'สัตว์เลี้ยง' : 'Pet'}</th>
+                  <th className="px-4 font-medium">{lang === 'th' ? 'ประเภท' : 'Trigger'}</th>
+                  <th className="px-4 font-medium">{lang === 'th' ? 'ความหมายที่แปลได้' : 'Translation'}</th>
+                  <th className="px-4 font-medium text-right">{lang === 'th' ? 'อารมณ์' : 'Mood'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.06] text-slate-200">
+                {filteredLogs.map(log => (
+                  <tr key={log.id} className="h-11 hover:bg-[#171C23] transition-colors">
+                    <td className="px-4 font-mono text-slate-400 tabular-nums whitespace-nowrap">
+                      {log.timestamp}
+                    </td>
+                    <td className="px-4 font-medium text-slate-100 whitespace-nowrap">
+                      {log.petName}
+                    </td>
+                    <td className="px-4 text-slate-400 whitespace-nowrap">
+                      {log.soundType}
+                    </td>
+                    <td className="px-4 text-slate-300 max-w-md truncate">
+                      {lang === 'th' ? log.translatedTextTh : log.translatedText}
+                    </td>
+                    <td className="px-4 text-right whitespace-nowrap">
+                      <span className="text-slate-200">{log.mood}</span>
+                      <span className="text-slate-500 font-mono tabular-nums ml-2">
+                        {log.confidence}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="py-12 px-6 text-center space-y-3">
+              <FileText className="w-6 h-6 text-slate-500 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-slate-200">
+                  {lang === 'th' ? 'ยังไม่มีประวัติการแปล (0 รายการ)' : 'No Translation Entries (0)'}
+                </p>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  {lang === 'th'
+                    ? 'เริ่มต้นวิเคราะห์ภาพหรือเสียงในหน้าวิเคราะห์สดเพื่อบันทึกรายการแรก'
+                    : 'Run a photo or voice analysis in Live Studio to record your first entry.'}
+                </p>
+              </div>
+              {onNavigate && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate('analysis')}
+                  className="inline-flex items-center px-4 py-2 rounded-lg border border-white/[0.1] bg-[#171C23] hover:bg-[#1E252E] text-xs font-medium text-slate-200 transition-colors cursor-pointer"
+                >
+                  {lang === 'th' ? 'ไปหน้าวิเคราะห์สด' : 'Go to Live Studio'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {onNavigate && (
+        <FlowNavigation
+          currentScreen="dashboard"
+          onNavigate={onNavigate}
+          lang={lang}
+        />
+      )}
     </div>
   );
 };

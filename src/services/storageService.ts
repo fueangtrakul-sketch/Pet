@@ -8,14 +8,13 @@ const STORAGE_KEYS = {
   SETTINGS: 'pet_translator_mood_settings_v1',
 };
 
-// Default initial community reviews to make the review page feel alive and engaging
 const INITIAL_REVIEWS: ReviewFeedback[] = [
   {
     id: 'rev_01',
-    authorName: 'คุณนันทน์ (ทาสแมว)',
-    petName: 'น้องส้ม (Scottish Fold)',
+    authorName: 'นันทน์ พ.',
+    petName: 'ส้ม (Scottish Fold)',
     rating: 5,
-    comment: 'ฟีเจอร์สแกนตรวจจับสดแม่นยำมากครับ แปลเสียงเพอร์กับภาษากายตอนนอนอาบแดดได้ตรงใจสุดๆ ชอบ UI 3D ที่ขยับตามเมาส์ สวยลื่นตามาก!',
+    comment: 'ระบบวิเคราะห์ภาษากายและการแปลเสียงเพอร์ทำงานได้ละเอียดและเข้าใจง่ายมาก ช่วยสังเกตพฤติกรรมแมวช่วงที่รู้สึกเครียดได้ดีขึ้นจริง',
     category: 'accuracy',
     createdAt: '10 ต.ค. 2026',
     likes: 14,
@@ -25,17 +24,17 @@ const INITIAL_REVIEWS: ReviewFeedback[] = [
     authorName: 'Sarah W.',
     petName: 'Cooper (Golden Retriever)',
     rating: 5,
-    comment: 'The 3D tactile card animations and audio waveform analyzer are incredible! My dog barks when excited and the speech bubble translates it instantly. 10/10!',
+    comment: 'Clean interface without distractions. Uploading a quick photo gives clear posture insights and practical care notes immediately.',
     category: 'features',
     createdAt: '09 ต.ค. 2026',
     likes: 21,
   },
   {
     id: 'rev_03',
-    authorName: 'คุณเมย์ & โกลเด้นจอมซน',
+    authorName: 'เมธาวี ร.',
     petName: 'บัดดี้ (Corgi)',
     rating: 5,
-    comment: 'ชอบที่มีระบบบันทึกแดชบอร์ดและคำแนะนำการดูแลสุขภาพเฉพาะตัว แนะนำให้เพื่อนๆ คนรักสัตว์มาลองใช้กันเยอะๆ นะคะ',
+    comment: 'ชอบหน้าสรุปสถิติรายสัปดาห์และระบบบันทึกข้อมูลอัตโนมัติ เปิดกลับมาดูย้อนหลังและส่งออกเป็น CSV ให้สัตวแพทย์ดูได้สะดวกมากค่ะ',
     category: 'general',
     createdAt: '08 ต.ค. 2026',
     likes: 9,
@@ -43,7 +42,6 @@ const INITIAL_REVIEWS: ReviewFeedback[] = [
 ];
 
 export class StorageService {
-  // Pets
   public static loadPets(): PetProfile[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.PETS);
@@ -64,11 +62,10 @@ export class StorageService {
     }
   }
 
-  // Active Pet ID
   public static loadActivePetId(): string | null {
     try {
       return localStorage.getItem(STORAGE_KEYS.ACTIVE_PET_ID);
-    } catch (e) {
+    } catch {
       return null;
     }
   }
@@ -85,7 +82,6 @@ export class StorageService {
     }
   }
 
-  // Translation Logs
   public static loadLogs(): TranslationLog[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.LOGS);
@@ -106,7 +102,6 @@ export class StorageService {
     }
   }
 
-  // Reviews & Feedback
   public static loadReviews(): ReviewFeedback[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.REVIEWS);
@@ -127,14 +122,13 @@ export class StorageService {
     }
   }
 
-  // Settings
   public static loadSettings(): { lang: 'th' | 'en'; isMuted: boolean } {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
       if (data) {
         return JSON.parse(data);
       }
-    } catch (e) {
+    } catch {
       // default
     }
     return { lang: 'th', isMuted: false };

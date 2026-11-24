@@ -5,17 +5,14 @@ import { ChoosePetScreen } from './components/ChoosePetScreen';
 import { LiveAnalysisScreen } from './components/LiveAnalysisScreen';
 import { DashboardScreen } from './components/DashboardScreen';
 import { ReviewScreen } from './components/ReviewScreen';
-import { PetRunnerOverlay } from './components/PetRunnerOverlay';
 import { PetProfile, TranslationLog, ReviewFeedback } from './types/pet';
 import { StorageService } from './services/storageService';
-import { Parallax3DBackground } from './components/Parallax3DBackground';
 import { SoundEffects } from './services/soundEffects';
-import { Sparkles, PawPrint, Eye, Activity, BarChart3, Home, Star } from 'lucide-react';
+import { ScreenId } from './components/FlowNavigation';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'choose' | 'analysis' | 'dashboard' | 'review'>('home');
+  const [currentScreen, setCurrentScreen] = useState<ScreenId>('home');
 
-  // Load persistent user data from StorageService (Restores all data when returning!)
   const [pets, setPets] = useState<PetProfile[]>(() => StorageService.loadPets());
   const [activePet, setActivePet] = useState<PetProfile | null>(() => {
     const savedPets = StorageService.loadPets();
@@ -29,7 +26,6 @@ export default function App() {
   const [logs, setLogs] = useState<TranslationLog[]>(() => StorageService.loadLogs());
   const [reviews, setReviews] = useState<ReviewFeedback[]>(() => StorageService.loadReviews());
 
-  // Settings
   const [lang, setLang] = useState<'th' | 'en'>(() => StorageService.loadSettings().lang);
   const [isMuted, setIsMuted] = useState<boolean>(() => {
     const saved = StorageService.loadSettings().isMuted;
@@ -37,7 +33,6 @@ export default function App() {
     return saved;
   });
 
-  // Persistent storage auto-save effects
   useEffect(() => {
     StorageService.savePets(pets);
   }, [pets]);
@@ -59,7 +54,6 @@ export default function App() {
     SoundEffects.setMuted(isMuted);
   }, [lang, isMuted]);
 
-  // Pet management
   const handleAddPet = (newPet: PetProfile) => {
     setPets(prev => {
       const updated = [...prev, newPet];
@@ -67,6 +61,17 @@ export default function App() {
       return updated;
     });
     setActivePet(newPet);
+  };
+
+  const handleDeletePet = (petId: string) => {
+    setPets(prev => {
+      const updated = prev.filter(p => p.id !== petId);
+      StorageService.savePets(updated);
+      if (activePet?.id === petId) {
+        setActivePet(updated[0] || null);
+      }
+      return updated;
+    });
   };
 
   const handleAddTranslationLog = (newLog: TranslationLog) => {
@@ -77,7 +82,6 @@ export default function App() {
     });
   };
 
-  // Review management
   const handleAddReview = (newReview: ReviewFeedback) => {
     setReviews(prev => {
       const updated = [newReview, ...prev];
@@ -94,184 +98,88 @@ export default function App() {
     });
   };
 
-  const handleScreenChange = (screen: 'home' | 'choose' | 'analysis' | 'dashboard' | 'review') => {
-    if (screen !== currentScreen) {
-      SoundEffects.playFootstepsPatter(5);
-    } else {
-      SoundEffects.playPop();
-    }
+  const handleScreenChange = (screen: ScreenId) => {
+    SoundEffects.playPop();
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="relative min-h-screen text-white font-sans overflow-x-hidden selection:bg-emerald-400 selection:text-emerald-950">
-      {/* Interactive 3D Parallax Dark Forest Background with Mouse Tilt and Floating Particles */}
-      <Parallax3DBackground />
+    <div className="min-h-screen bg-[#0B0D10] text-slate-100 flex flex-col selection:bg-[#4BA393] selection:text-white">
+      <Navigation
+        currentScreen={currentScreen}
+        setCurrentScreen={handleScreenChange}
+        isMuted={isMuted}
+        setIsMuted={setIsMuted}
+        lang={lang}
+        setLang={setLang}
+      />
 
-      {/* App Content */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-        {/* Navigation Bar */}
-        <Navigation
-          currentScreen={currentScreen}
-          setCurrentScreen={handleScreenChange}
-          activePet={activePet}
-          pets={pets}
-          onSelectPet={setActivePet}
-          isMuted={isMuted}
-          setIsMuted={setIsMuted}
-          lang={lang}
-          setLang={setLang}
-        />
+      <main className="flex-1">
+        {currentScreen === 'home' && (
+          <HeroScreen
+            onStart={() => handleScreenChange('choose')}
+            onNavigate={handleScreenChange}
+            lang={lang}
+            activePet={activePet}
+          />
+        )}
 
-        {/* Screen Views */}
-        <main className="flex-1 pb-20">
-          {currentScreen === 'home' && (
-            <HeroScreen
-              key="home"
-              onStart={() => handleScreenChange('choose')}
-              lang={lang}
-              activePet={activePet}
-            />
-          )}
+        {currentScreen === 'choose' && (
+          <ChoosePetScreen
+            pets={pets}
+            activePet={activePet}
+            onSelectPet={setActivePet}
+            onAddPet={handleAddPet}
+            onDeletePet={handleDeletePet}
+            onNavigate={handleScreenChange}
+            lang={lang}
+          />
+        )}
 
-          {currentScreen === 'choose' && (
-            <ChoosePetScreen
-              key="choose"
-              pets={pets}
-              activePet={activePet}
-              onSelectPet={setActivePet}
-              onAddPet={handleAddPet}
-              onNavigate={handleScreenChange}
-              lang={lang}
-            />
-          )}
+        {currentScreen === 'analysis' && (
+          <LiveAnalysisScreen
+            activePet={activePet}
+            lang={lang}
+            onAddTranslationLog={handleAddTranslationLog}
+            onNavigate={handleScreenChange}
+          />
+        )}
 
-          {currentScreen === 'analysis' && (
-            <LiveAnalysisScreen
-              key="analysis"
-              activePet={activePet}
-              lang={lang}
-              onAddTranslationLog={handleAddTranslationLog}
-              onNavigate={handleScreenChange}
-            />
-          )}
+        {currentScreen === 'dashboard' && (
+          <DashboardScreen
+            activePet={activePet}
+            pets={pets}
+            onSelectPet={setActivePet}
+            logs={logs}
+            lang={lang}
+            onNavigate={handleScreenChange}
+          />
+        )}
 
-          {currentScreen === 'dashboard' && (
-            <DashboardScreen
-              key="dashboard"
-              activePet={activePet}
-              pets={pets}
-              onSelectPet={setActivePet}
-              logs={logs}
-              lang={lang}
-              onNavigate={handleScreenChange}
-            />
-          )}
+        {currentScreen === 'review' && (
+          <ReviewScreen
+            reviews={reviews}
+            onAddReview={handleAddReview}
+            onLikeReview={handleLikeReview}
+            pets={pets}
+            activePet={activePet}
+            lang={lang}
+            onNavigate={handleScreenChange}
+          />
+        )}
+      </main>
 
-          {currentScreen === 'review' && (
-            <ReviewScreen
-              key="review"
-              reviews={reviews}
-              onAddReview={handleAddReview}
-              onLikeReview={handleLikeReview}
-              pets={pets}
-              activePet={activePet}
-              lang={lang}
-            />
-          )}
-        </main>
-
-        {/* Scampering Pet Running Animation across tabs with Paw Prints Trail */}
-        <PetRunnerOverlay
-          currentScreen={currentScreen}
-          activePet={activePet}
-        />
-
-        {/* 5-Quadrant Screen Quick Switcher Bar */}
-        <div className="sticky bottom-3 z-40 max-w-2xl mx-auto px-3 w-full">
-          <div className="glass-panel py-2 px-2.5 rounded-2xl flex items-center justify-between border-emerald-400/50 shadow-2xl backdrop-blur-xl gap-1">
-            {/* 1. Home / หน้าแรก */}
-            <button
-              onClick={() => handleScreenChange('home')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                currentScreen === 'home'
-                  ? 'bg-yellow-400 text-emerald-950 shadow-lg scale-105 font-black'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/40'
-              }`}
-            >
-              <Home className="w-3.5 h-3.5" />
-              <span>{lang === 'th' ? '1.หน้าแรก' : '1.Home'}</span>
-              {currentScreen === 'home' && <span className="text-xs animate-bounce">🐾</span>}
-            </button>
-
-            {/* 2. Choose / เลือกสัตว์ */}
-            <button
-              onClick={() => handleScreenChange('choose')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                currentScreen === 'choose'
-                  ? 'bg-yellow-400 text-emerald-950 shadow-lg scale-105 font-black'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/40'
-              }`}
-            >
-              <PawPrint className="w-3.5 h-3.5" />
-              <span>{lang === 'th' ? '2.เลือกสัตว์' : '2.Pets'}</span>
-              {currentScreen === 'choose' && (
-                <span className="text-xs animate-bounce">
-                  {activePet ? (activePet.species === 'dog' ? '🐶' : '🐱') : '🐾'}
-                </span>
-              )}
-            </button>
-
-            {/* 3. Live / ตรวจจับสด */}
-            <button
-              onClick={() => handleScreenChange('analysis')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                currentScreen === 'analysis'
-                  ? 'bg-yellow-400 text-emerald-950 shadow-lg scale-105 font-black'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/40'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" />
-              <span>{lang === 'th' ? '3.ตรวจจับสด' : '3.Live'}</span>
-              {currentScreen === 'analysis' && <span className="text-xs animate-bounce">👁️</span>}
-            </button>
-
-            {/* 4. Dashboard / เเดชบอร์ด */}
-            <button
-              onClick={() => handleScreenChange('dashboard')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                currentScreen === 'dashboard'
-                  ? 'bg-yellow-400 text-emerald-950 shadow-lg scale-105 font-black'
-                  : 'text-emerald-200 hover:text-white hover:bg-emerald-900/40'
-              }`}
-            >
-              <BarChart3 className="w-3.5 h-3.5" />
-              <span>{lang === 'th' ? '4.แดชบอร์ด' : '4.Stats'}</span>
-              {currentScreen === 'dashboard' && <span className="text-xs animate-bounce">📊</span>}
-            </button>
-
-            {/* 5. Review / รีวิว & เรตติ้ง */}
-            <button
-              onClick={() => handleScreenChange('review')}
-              className={`flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer ${
-                currentScreen === 'review'
-                  ? 'bg-yellow-400 text-emerald-950 shadow-lg scale-105 font-black'
-                  : 'text-yellow-200 hover:text-white hover:bg-emerald-900/40'
-              }`}
-            >
-              <Star className="w-3.5 h-3.5 fill-current" />
-              <span>{lang === 'th' ? '5.รีวิว' : '5.Review'}</span>
-              {currentScreen === 'review' && <span className="text-xs animate-bounce">⭐</span>}
-            </button>
-          </div>
+      <footer className="border-t border-white/[0.06] py-6 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+          <span>Pet Translator Mood</span>
+          <span>
+            {lang === 'th'
+              ? 'ระบบแปลภาษากายและอารมณ์สัตว์เลี้ยง · บันทึกข้อมูลบนอุปกรณ์'
+              : 'Pet Behavioral & Mood Translation · Local Device Persistence'}
+          </span>
         </div>
-
-        {/* Footer */}
-        <footer className="text-center py-4 text-xs text-emerald-200/70 drop-shadow">
-          <p>Pet Translator Mood · AI Pet Emotion & Body Language System</p>
-        </footer>
-      </div>
+      </footer>
     </div>
   );
 }

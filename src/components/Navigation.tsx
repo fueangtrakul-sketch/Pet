@@ -1,24 +1,11 @@
-import React, { useState } from 'react';
-import {
-  Volume2,
-  VolumeX,
-  Languages,
-  Activity,
-  BarChart3,
-  PawPrint,
-  Home,
-  Sparkles,
-  Star,
-} from 'lucide-react';
-import { PetProfile } from '../types/pet';
+import React from 'react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { SoundEffects } from '../services/soundEffects';
+import { ScreenId, SCREEN_STEPS } from './FlowNavigation';
 
 interface NavigationProps {
-  currentScreen: 'home' | 'choose' | 'analysis' | 'dashboard' | 'review';
-  setCurrentScreen: (screen: 'home' | 'choose' | 'analysis' | 'dashboard' | 'review') => void;
-  activePet: PetProfile | null;
-  pets: PetProfile[];
-  onSelectPet: (pet: PetProfile) => void;
+  currentScreen: ScreenId;
+  setCurrentScreen: (screen: ScreenId) => void;
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
   lang: 'en' | 'th';
@@ -28,24 +15,13 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({
   currentScreen,
   setCurrentScreen,
-  activePet,
-  pets,
-  onSelectPet,
   isMuted,
   setIsMuted,
   lang,
   setLang,
 }) => {
-  const [runningTabMascot, setRunningTabMascot] = useState<string | null>(null);
-
-  const handleNavClick = (screen: 'home' | 'choose' | 'analysis' | 'dashboard' | 'review') => {
-    if (screen !== currentScreen) {
-      setRunningTabMascot(screen);
-      SoundEffects.playFootstepsPatter(4);
-      setTimeout(() => setRunningTabMascot(null), 1000);
-    } else {
-      SoundEffects.playPop();
-    }
+  const handleNavClick = (screen: ScreenId) => {
+    SoundEffects.playPop();
     setCurrentScreen(screen);
   };
 
@@ -54,13 +30,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     setIsMuted(nextState);
     SoundEffects.setMuted(nextState);
     if (!nextState) {
-      if (activePet?.species === 'dog') {
-        SoundEffects.playBark();
-      } else if (activePet?.species === 'cat') {
-        SoundEffects.playMeow();
-      } else {
-        SoundEffects.playMagicChime();
-      }
+      SoundEffects.playPop();
     }
   };
 
@@ -70,222 +40,94 @@ export const Navigation: React.FC<NavigationProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full px-4 py-3 sm:px-6">
-      <div className="max-w-7xl mx-auto flex items-center justify-between glass-panel rounded-2xl px-4 py-2.5 sm:px-6 shadow-2xl relative">
-        {/* Brand / Logo */}
+    <header className="sticky top-0 z-40 w-full bg-[#0B0D10]/90 backdrop-blur-md border-b border-white/[0.08]">
+      {/* Desktop 3-Zone Top Bar */}
+      <div className="max-w-6xl mx-auto h-16 px-4 sm:px-6 flex items-center justify-between gap-8">
+        {/* Zone 1: Single clean wordmark */}
         <button
+          type="button"
           onClick={() => handleNavClick('home')}
-          className="flex items-center space-x-2.5 text-left group cursor-pointer focus:outline-none"
+          className="font-display text-base font-semibold tracking-tight text-slate-100 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA393] rounded"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-900/40 group-hover:scale-105 transition-transform">
-            <PawPrint className="w-5 h-5 text-emerald-950 fill-emerald-950" />
-          </div>
-          <div>
-            <span className="font-game text-base sm:text-lg font-bold text-white tracking-wider block drop-shadow-sm">
-              PET TRANSLATOR MOOD
-            </span>
-            <span className="text-[10px] text-emerald-300/80 font-medium tracking-wide hidden sm:block">
-              {lang === 'th' ? 'ระบบแปลภาษาและอารมณ์สัตว์เลี้ยง AI' : 'AI Emotion & Speech Decoder'}
-            </span>
-          </div>
+          Pet Translator Mood
         </button>
 
-        {/* Center Screen Tabs with Running Pet Mascot on Switch */}
-        <nav className="hidden lg:flex items-center space-x-1.5 bg-emerald-950/70 border border-emerald-500/30 p-1.5 rounded-2xl relative">
-          {/* Home */}
-          <button
-            onClick={() => handleNavClick('home')}
-            className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentScreen === 'home'
-                ? 'bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-900/50 font-bold scale-[1.02]'
-                : 'text-emerald-200/80 hover:text-white hover:bg-emerald-900/40'
-            }`}
-          >
-            <Home className="w-3.5 h-3.5" />
-            <span>{lang === 'th' ? 'หน้าแรก' : 'Home'}</span>
-            {currentScreen === 'home' && (
-              <span className="text-xs animate-bounce ml-0.5">🐾</span>
-            )}
-          </button>
-
-          {/* Choose Pet */}
-          <button
-            onClick={() => handleNavClick('choose')}
-            className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentScreen === 'choose'
-                ? 'bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-900/50 font-bold scale-[1.02]'
-                : 'text-emerald-200/80 hover:text-white hover:bg-emerald-900/40'
-            }`}
-          >
-            <PawPrint className="w-3.5 h-3.5" />
-            <span>{lang === 'th' ? 'เลือกสัตว์เลี้ยง' : 'Choose Pet'}</span>
-            {currentScreen === 'choose' && (
-              <span className="text-xs animate-bounce ml-0.5">
-                {activePet ? (activePet.species === 'dog' ? '🐶' : '🐱') : '🐾'}
-              </span>
-            )}
-          </button>
-
-          {/* Live Analysis */}
-          <button
-            onClick={() => handleNavClick('analysis')}
-            className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentScreen === 'analysis'
-                ? 'bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-900/50 font-bold scale-[1.02]'
-                : 'text-emerald-200/80 hover:text-white hover:bg-emerald-900/40'
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5" />
-            <span>{lang === 'th' ? 'ตรวจจับสด' : 'Live Analysis'}</span>
-            {currentScreen === 'analysis' && (
-              <span className="text-xs animate-bounce ml-0.5">👁️</span>
-            )}
-          </button>
-
-          {/* Pet Dashboard */}
-          <button
-            onClick={() => handleNavClick('dashboard')}
-            className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentScreen === 'dashboard'
-                ? 'bg-emerald-400 text-emerald-950 shadow-lg shadow-emerald-900/50 font-bold scale-[1.02]'
-                : 'text-emerald-200/80 hover:text-white hover:bg-emerald-900/40'
-            }`}
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>{lang === 'th' ? 'แดชบอร์ด' : 'Pet Dashboard'}</span>
-            {currentScreen === 'dashboard' && (
-              <span className="text-xs animate-bounce ml-0.5">📊</span>
-            )}
-          </button>
-
-          {/* Reviews & Feedback Tab */}
-          <button
-            onClick={() => handleNavClick('review')}
-            className={`relative flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-              currentScreen === 'review'
-                ? 'bg-yellow-400 text-emerald-950 shadow-lg shadow-yellow-900/50 font-bold scale-[1.02]'
-                : 'text-yellow-200/90 hover:text-white hover:bg-emerald-900/40'
-            }`}
-          >
-            <Star className={`w-3.5 h-3.5 ${currentScreen === 'review' ? 'fill-emerald-950' : 'fill-yellow-400 text-yellow-400'}`} />
-            <span>{lang === 'th' ? 'รีวิว & เรตติ้ง' : 'Reviews'}</span>
-            {currentScreen === 'review' && (
-              <span className="text-xs animate-bounce ml-0.5">⭐</span>
-            )}
-          </button>
+        {/* Zone 2: Clean single-line text links */}
+        <nav
+          aria-label={lang === 'th' ? 'เมนูหลัก' : 'Primary Navigation'}
+          className="hidden md:flex items-center gap-6 h-full"
+        >
+          {SCREEN_STEPS.map(step => {
+            const isActive = currentScreen === step.id;
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => handleNavClick(step.id)}
+                className={`relative h-full inline-flex items-center text-sm font-medium transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-none ${
+                  isActive
+                    ? 'text-slate-100'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>{lang === 'th' ? step.titleTh : step.titleEn}</span>
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4BA393]" />
+                )}
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Right Controls: Pet Quick Switcher, Sound, Lang */}
-        <div className="flex items-center space-x-2.5">
-          {/* 3D Motion Hint Badge */}
-          <div
-            className="hidden xl:flex items-center space-x-1.5 bg-emerald-950/70 border border-emerald-400/30 px-2.5 py-1 rounded-xl text-[10px] font-mono text-emerald-300 shadow-sm"
-            title={lang === 'th' ? 'เลื่อนเมาส์เพื่อหมุนมุมมองภาพ 3D รอบทิศทาง' : 'Move cursor to rotate 3D parallax view'}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>{lang === 'th' ? '3D เลื่อนตามเมาส์' : '3D Mouse Tilt'}</span>
-          </div>
-
-          {/* Active Pet Chip */}
-          <div className="flex items-center space-x-1.5 bg-emerald-900/40 border border-emerald-500/30 px-2 py-1 rounded-xl">
-            {activePet ? (
-              <>
-                <img
-                  src={activePet.avatar}
-                  alt={activePet.name}
-                  className="w-6 h-6 rounded-full object-cover ring-1 ring-emerald-400 bg-black"
-                />
-                <span className="text-xs font-bold text-white font-game hidden sm:inline">
-                  {activePet.name}
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="w-6 h-6 rounded-full bg-emerald-800/80 flex items-center justify-center text-xs">
-                  🐾
-                </div>
-                <span className="text-xs font-medium text-emerald-300 font-game hidden sm:inline">
-                  {lang === 'th' ? 'ยังไม่มีสัตว์' : 'No Pet'}
-                </span>
-              </>
-            )}
-          </div>
-
-          {/* Sound FX Toggle */}
+        {/* Zone 3: Language, Sound & Primary Action */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
+            type="button"
             onClick={toggleSound}
-            className={`p-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
-              isMuted
-                ? 'bg-neutral-900/60 border-neutral-700 text-neutral-400'
-                : 'bg-emerald-900/50 border-emerald-500/40 text-emerald-300'
-            }`}
-            title={isMuted ? 'เปิดเสียงเอฟเฟกต์ (Unmute)' : 'ปิดเสียงเอฟเฟกต์ (Mute)'}
+            className="p-2 min-h-[38px] min-w-[38px] rounded-lg border border-white/[0.08] bg-[#12161B] hover:bg-[#171C23] text-slate-400 hover:text-slate-200 transition-colors cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA393]"
+            title={isMuted ? (lang === 'th' ? 'เปิดเสียง' : 'Unmute') : (lang === 'th' ? 'ปิดเสียง' : 'Mute')}
+            aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
 
-          {/* Language Switcher */}
           <button
+            type="button"
             onClick={toggleLang}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-emerald-900/50 border border-emerald-500/40 text-emerald-200 text-xs font-bold hover:bg-emerald-800/60 transition-colors cursor-pointer"
+            className="px-2.5 py-1.5 min-h-[38px] rounded-lg border border-white/[0.08] bg-[#12161B] hover:bg-[#171C23] text-xs font-mono font-medium text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA393]"
             title="Switch Language (TH / EN)"
           >
-            <Languages className="w-3.5 h-3.5" />
-            <span>{lang.toUpperCase()}</span>
+            {lang === 'th' ? 'TH' : 'EN'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleNavClick('analysis')}
+            className="hidden sm:inline-flex items-center px-4 py-2 min-h-[38px] rounded-lg bg-[#E6EBF0] hover:bg-white text-[#0B0D10] text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4BA393]"
+          >
+            {lang === 'th' ? 'เริ่มวิเคราะห์' : 'Analyze'}
           </button>
         </div>
       </div>
 
-      {/* Mobile Nav Bar */}
-      <div className="flex lg:hidden mt-2 justify-center space-x-1 glass-panel p-1.5 rounded-xl overflow-x-auto">
-        <button
-          onClick={() => handleNavClick('home')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-            currentScreen === 'home' ? 'bg-emerald-400 text-emerald-950 shadow-md' : 'text-emerald-200'
-          }`}
-        >
-          <span>{lang === 'th' ? 'หน้าแรก' : 'Home'}</span>
-          {currentScreen === 'home' && <span>🐾</span>}
-        </button>
-        <button
-          onClick={() => handleNavClick('choose')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-            currentScreen === 'choose' ? 'bg-emerald-400 text-emerald-950 shadow-md' : 'text-emerald-200'
-          }`}
-        >
-          <span>{lang === 'th' ? 'เลือกสัตว์' : 'Pets'}</span>
-          {currentScreen === 'choose' && (
-            <span>{activePet ? (activePet.species === 'dog' ? '🐶' : '🐱') : '🐾'}</span>
-          )}
-        </button>
-        <button
-          onClick={() => handleNavClick('analysis')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-            currentScreen === 'analysis' ? 'bg-emerald-400 text-emerald-950 shadow-md' : 'text-emerald-200'
-          }`}
-        >
-          <span>{lang === 'th' ? 'ตรวจจับสด' : 'Live'}</span>
-          {currentScreen === 'analysis' && <span>👁️</span>}
-        </button>
-        <button
-          onClick={() => handleNavClick('dashboard')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-            currentScreen === 'dashboard' ? 'bg-emerald-400 text-emerald-950 shadow-md' : 'text-emerald-200'
-          }`}
-        >
-          <span>{lang === 'th' ? 'แดชบอร์ด' : 'Stats'}</span>
-          {currentScreen === 'dashboard' && <span>📊</span>}
-        </button>
-        <button
-          onClick={() => handleNavClick('review')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center space-x-1 ${
-            currentScreen === 'review' ? 'bg-yellow-400 text-emerald-950 shadow-md' : 'text-yellow-200'
-          }`}
-        >
-          <Star className="w-3 h-3 fill-current inline" />
-          <span>{lang === 'th' ? 'รีวิว' : 'Review'}</span>
-          {currentScreen === 'review' && <span>⭐</span>}
-        </button>
+      {/* Compact Mobile Navigation Row (single line, subtle) */}
+      <div className="flex md:hidden border-t border-white/[0.06] px-4 overflow-x-auto gap-5 h-10 items-center">
+        {SCREEN_STEPS.map(step => {
+          const isActive = currentScreen === step.id;
+          return (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => handleNavClick(step.id)}
+              className={`relative h-full inline-flex items-center text-xs font-medium whitespace-nowrap shrink-0 cursor-pointer ${
+                isActive ? 'text-slate-100' : 'text-slate-400'
+              }`}
+            >
+              <span>{lang === 'th' ? step.titleTh : step.titleEn}</span>
+              {isActive && <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#4BA393]" />}
+            </button>
+          );
+        })}
       </div>
     </header>
   );
